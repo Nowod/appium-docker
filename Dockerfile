@@ -16,8 +16,8 @@ RUN apt-get update -y
 RUN apt-get install -y python3 python3-pip
 # 更换pip源
 RUN pip3 install -U pip
-RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-RUN pip config set install.trusted-host https://pypi.tuna.tsinghua.edu.cn
+RUN pip config set global.index-url http://mirrors.aliyun.com/pypi/simple/
+RUN pip config set install.trusted-host http://mirrors.aliyun.com
 RUN pip3 install Appium-Python-Client
 
 # 安装NodeJS环境
@@ -39,5 +39,8 @@ RUN appium plugin install --source=npm appium-reporter-plugin
 
 # 安装adb环境
 RUN apt-get install -y android-tools-adb
+
+# 安装tidevice环境
+RUN pip3 install -U "tidevice[openssl]"   # Recommend
 
 EXPOSE 4723
