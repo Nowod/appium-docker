@@ -37,4 +37,7 @@ RUN appium driver install uiautomator2
 RUN appium driver install xcuitest
 RUN appium plugin install --source=npm appium-reporter-plugin
 
+# 安装adb环境
+RUN apt-get install -y android-tools-adb
+
 EXPOSE 4723
