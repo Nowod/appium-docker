@@ -6,7 +6,9 @@ ENV NODE_MAJOR=20
 WORKDIR /root
 ## Android ADB端口
 EXPOSE 4723
-
+## 更换gcc版本
+RUN apt install gcc-9 g++-9
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9 --slave /usr/bin/gcov gcov /usr/bin/gcov-9
 ## 更换apt-get源
 RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list
 RUN sed -i s@/security.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list
@@ -44,6 +46,7 @@ RUN apt-get install -y \
     libtool-bin \
     python-dev-is-python3 \
     systemctl
+RUN apt-get install -y clang
 ### USB和WiFi连接所需的依赖包
 RUN apt-get install -y \
     libplist-dev \
@@ -88,7 +91,7 @@ RUN ldconfig
 WORKDIR /root
 RUN git clone https://github.com/tihmstar/libgeneral.git
 WORKDIR /root/libgeneral
-RUN git checkout 72
+# RUN git checkout 72
 RUN ./autogen.sh
 RUN make CFLAGS="-g -O2 -std=c11 -latomic" LDFLAGS=-latomic
 RUN make install
