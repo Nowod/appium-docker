@@ -1,26 +1,26 @@
 FROM ubuntu:latest
 USER root
 
-# nodejs版本设置
+# 基础设置
 ENV NODE_MAJOR=20
+WORKDIR /root
+## Android ADB端口
+EXPOSE 4723
 
-RUN cd ~
-
-# 更换apt-get源
+## 更换apt-get源
 RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list
 RUN sed -i s@/security.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list
 RUN apt clean
 RUN apt-get update -y
 
-# 安装python环境
+# 配置appium2 环境
 RUN apt-get install -y python3 python3-pip
-# 更换pip源
+WORKDIR /usr/bin
+RUN ln -s /usr/bin/python3 python
 RUN pip3 install -U pip
 RUN pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 RUN pip3 config set install.trusted-host https://mirrors.aliyun.com
 RUN pip3 install Appium-Python-Client
-
-# 安装NodeJS环境
 RUN apt-get install -y ca-certificates curl gnupg
 RUN mkdir -p /etc/apt/keyrings
 RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
@@ -29,18 +29,90 @@ RUN apt-get update -y
 RUN apt-get install nodejs -y
 RUN npm config set registry https://registry.npm.taobao.org
 RUN npm install -g npm@latest
-
-
-# 安装appium2环境
 RUN npm install -g appium@next
-RUN appium driver install uiautomator2
-RUN appium driver install xcuitest
-RUN appium plugin install --source=npm appium-reporter-plugin
 
-# 安装adb环境
+## 配置Android 环境
 RUN apt-get install -y android-tools-adb
 
-# 安装tidevice环境
-RUN pip3 install -U "tidevice[openssl]"   # Recommend
+## 配置iOS 环境
+RUN apt-get install -y \
+    build-essential \
+    checkinstall \
+    git \
+    autoconf \
+    automake \
+    libtool-bin \
+    python-dev-is-python3 \
+    systemctl
+### USB和WiFi连接所需的依赖包
+RUN apt-get install -y \
+    libplist-dev \
+    libusbmuxd-dev \
+    libimobiledevice-dev \
+    libusb-1.0-0-dev \
+    libplist++-dev \
+    libssl-dev \
+    usbmuxd \
+    udev \
+    libavahi-client-dev \
+    avahi-utils \
+    libatomic-ops-dev \
+    libatomic1 \
+    bluez-tools
 
-EXPOSE 4723
+#### libplist
+WORKDIR /root
+RUN git clone https://github.com/libimobiledevice/libplist.git
+WORKDIR /root/libplist
+RUN ./autogen.sh && make && make install
+RUN ldconfig
+#### libimobiledevice-glue
+WORKDIR /root
+RUN git clone https://github.com/libimobiledevice/libimobiledevice-glue.git
+WORKDIR /root/libimobiledevice-glue
+RUN ./autogen.sh && make && make install
+RUN ldconfig
+#### libusbmuxd
+WORKDIR /root
+RUN git clone https://github.com/libimobiledevice/libusbmuxd.git
+WORKDIR /root/libusbmuxd
+RUN ./autogen.sh && make && make install
+RUN ldconfig
+#### libimobiledevice
+WORKDIR /root
+RUN git clone https://github.com/libimobiledevice/libimobiledevice.git
+WORKDIR /root/libimobiledevice
+RUN ./autogen.sh && make && make install
+RUN ldconfig
+#### libgeneral
+WORKDIR /root
+RUN git clone https://github.com/tihmstar/libgeneral.git
+WORKDIR /root/libgeneral
+RUN git checkout 72
+RUN ./autogen.sh
+RUN make CFLAGS="-g -O2 -std=c11 -latomic" LDFLAGS=-latomic
+RUN make install
+RUN ldconfig
+#### usbmuxd2
+WORKDIR /root
+RUN git clone https://github.com/tihmstar/usbmuxd2.git
+WORKDIR /root/usbmuxd2
+RUN git submodule init
+RUN git submodule update
+RUN sed -i '1 i LDFLAGS+="-latomic -lstdc++fs"' configure.ac
+RUN ./autogen.sh && make && make install
+RUN ldconfig
+#### tidevice
+# RUN npm install -g tidevice
+
+#### 服务启动
+# WORKDIR /root
+# RUN sed -i s@/#domain-name=local/@/domain-name=local/@g  /etc/avahi/avahi-daemon.conf
+# RUN sed -i s@/publish-hinfo=no/@/publish-hinfo=yes/@g  /etc/avahi/avahi-daemon.conf
+# RUN sed -i s@/publish-workstation=no/@/publish-workstation=yes/@g  /etc/avahi/avahi-daemon.conf
+# RUN systemctl list-unit-files avahi-daemon.service
+# RUN systemctl enable avahi-daemon.service
+# RUN systemctl start avahi-daemon.service
+# RUN systemctl enable ssh.service
+# RUN systemctl start ssh.service
+
